@@ -296,6 +296,8 @@ const recursivelyAddInputs = (node: Node) => {
 
 const main = async () => {
   let observer = new MutationObserver((mutations) => {
+    inputsMap.forEach((control) => control.updatePosition());
+
     for (let mutation of mutations) {
       for (let addedNode of mutation.addedNodes) {
         recursivelyAddInputs(addedNode);
