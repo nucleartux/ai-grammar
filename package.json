@@ -1,9 +1,9 @@
 {
   "name": "ai-grammar",
   "displayName": "Free AI Grammar Checker",
+  "description": "Completely free and open source Chrome AI Grammar Check Extension",
   "version": "0.0.1",
   "author": "Igor Adrov",
-  "description": "",
   "type": "module",
   "license": "MIT",
   "keywords": [
