@@ -150,6 +150,8 @@ class Control {
     this.#tooltip.textContent = "Loading...";
     document.body.appendChild(this.#tooltip);
 
+    new ResizeObserver(() => this.updatePosition()).observe(textArea);
+
     this.updatePosition();
 
     this.#button.addEventListener("mouseenter", () => this.#showTooltip());
