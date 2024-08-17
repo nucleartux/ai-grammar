@@ -137,10 +137,14 @@ class Control {
     this.#tooltip.style.background = "#fff";
     this.#tooltip.style.borderRadius = "4px";
     this.#tooltip.style.padding = "8px";
-    this.#tooltip.style.fontSize = "14px";
+    this.#tooltip.style.fontSize = "16px";
     this.#tooltip.style.whiteSpace = "pre-wrap";
     this.#tooltip.style.width = "max-content";
     this.#tooltip.style.maxWidth = "300px";
+    this.#tooltip.style.maxHeight = "300px";
+    this.#tooltip.style.overflow = "hidden";
+    this.#tooltip.style.textOverflow = "ellipsis";
+    this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
     this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
     this.#tooltip.style.zIndex = "99999999";
     this.#tooltip.textContent = "Loading...";
