@@ -1,6 +1,6 @@
 # ai-grammar
 
-> a chrome extension tools built with Vite + React, and Manifest v3
+> Completly free and open source Chrome AI Grammar Check Extension
 
 ## Installing
 
