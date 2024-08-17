@@ -1,6 +1,8 @@
 # ai-grammar
 
-> Completly free and open source Chrome AI Grammar Check Extension
+![Basic grammar check](./assets/1.png "Basic grammar check")
+
+> Completely free and open source Chrome AI Grammar Check Extension
 
 ## Installing
 
