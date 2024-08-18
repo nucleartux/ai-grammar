@@ -73,8 +73,10 @@ function createDiff(str1: string, str2: string) {
 const fixGrammar = async (text: string) => {
   const session = await ai.createTextSession();
 
-  const prompt = `prompt user: correct grammar, output only corrected sentence:${text}<ctrl23>
-  assistant: `;
+  const prompt = [
+    `user: correct grammar, output only corrected text:${text}<ctrl23>`,
+    "assistant: ",
+  ].join("\n");
 
   const result = (await session.prompt(prompt)).trim();
 
