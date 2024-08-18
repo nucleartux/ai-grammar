@@ -96,13 +96,18 @@ const isSupported = async () => {
   }
 };
 
+const isTextArea = (node: Node): node is HTMLTextAreaElement => {
+  return node instanceof HTMLTextAreaElement && node.spellcheck;
+};
+
 const recursivelyFindAllTextAreas = (node: Node) => {
   const inputs: HTMLTextAreaElement[] = [];
-  if (node instanceof HTMLTextAreaElement) {
+  if (isTextArea(node)) {
     inputs.push(node);
-  }
-  for (let child of node.childNodes) {
-    inputs.push(...recursivelyFindAllTextAreas(child));
+  } else {
+    for (let child of node.childNodes) {
+      inputs.push(...recursivelyFindAllTextAreas(child));
+    }
   }
   return inputs;
 };
