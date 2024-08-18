@@ -96,12 +96,18 @@ const isSupported = async () => {
   }
 };
 
-const isTextArea = (node: Node): node is HTMLTextAreaElement => {
-  return node instanceof HTMLTextAreaElement && node.spellcheck;
+const isTextArea = (
+  node: Node | EventTarget,
+): node is HTMLTextAreaElement | HTMLElement => {
+  return (
+    ((node instanceof HTMLElement && node.contentEditable === "true") ||
+      node instanceof HTMLTextAreaElement) &&
+    node.spellcheck
+  );
 };
 
 const recursivelyFindAllTextAreas = (node: Node) => {
-  const inputs: HTMLTextAreaElement[] = [];
+  const inputs: (HTMLTextAreaElement | HTMLElement)[] = [];
   if (isTextArea(node)) {
     inputs.push(node);
   } else {
@@ -125,7 +131,7 @@ class Control {
   #text: string = "";
   #result: string = "";
 
-  constructor(public textArea: HTMLTextAreaElement) {
+  constructor(public textArea: HTMLTextAreaElement | HTMLElement) {
     this.#button = document.createElement("button");
     this.#button.innerHTML = loadingIcon;
     this.#button.addEventListener("click", this.#onClick);
@@ -152,6 +158,7 @@ class Control {
     this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
     this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
     this.#tooltip.style.zIndex = "99999999";
+    this.#tooltip.style.color = "#000";
     this.#tooltip.textContent = "Loading...";
     document.body.appendChild(this.#tooltip);
 
@@ -178,8 +185,12 @@ class Control {
     this.#tooltip.style.display = "none";
   }
 
-  public async update(t: string) {
-    const text = t.trim();
+  public async update() {
+    const text =
+      this.textArea instanceof HTMLTextAreaElement
+        ? this.textArea.value
+        : this.textArea.innerText;
+
     this.#text = text;
 
     this.updatePosition();
@@ -251,8 +262,15 @@ class Control {
     if (!this.#result || this.#isCorrect) {
       return;
     }
-    this.textArea.value = this.#result;
-    this.#hide();
+    if (this.textArea instanceof HTMLTextAreaElement) {
+      this.textArea.value = this.#result;
+      this.#hide();
+    } else {
+      const type = "text/plain";
+      const blob = new Blob([this.#result], { type });
+      const data = [new ClipboardItem({ [type]: blob })];
+      await navigator.clipboard.write(data);
+    }
   };
 
   #hide() {
@@ -269,22 +287,21 @@ class Control {
   }
 }
 
-const inputsMap = new Map<HTMLTextAreaElement, Control>();
+const inputsMap = new Map<HTMLTextAreaElement | HTMLElement, Control>();
 
 const listener = async (e: Event) => {
-  if (!(e.target instanceof HTMLTextAreaElement)) {
+  const target = e.target;
+
+  if (!target || !isTextArea(target)) {
     return;
   }
-
-  const target = e.target as HTMLTextAreaElement;
-  const text = target.value;
 
   let control = inputsMap.get(target);
   if (!control) {
     control = new Control(target);
     inputsMap.set(target, control);
   }
-  control.update(text);
+  control.update();
 };
 
 const recursivelyAddInputs = (node: Node) => {
@@ -294,7 +311,7 @@ const recursivelyAddInputs = (node: Node) => {
     if (!control) {
       control = new Control(input);
       inputsMap.set(input, control);
-      control.update(input.value);
+      control.update();
     }
   }
 };
