@@ -339,9 +339,9 @@ const main = async () => {
 
   document.addEventListener("input", listener);
 
-  window.onresize = () => {
+  setInterval(() => {
     inputsMap.forEach((control) => control.updatePosition());
-  };
+  }, 1000);
 };
 
 main();
