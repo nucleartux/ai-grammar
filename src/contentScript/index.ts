@@ -320,8 +320,11 @@ const recursivelyAddInputs = (node: Node) => {
   }
 };
 
+let changed = false;
+
 const main = async () => {
   let observer = new MutationObserver((mutations) => {
+    changed = true;
     for (let mutation of mutations) {
       for (let addedNode of mutation.addedNodes) {
         recursivelyAddInputs(addedNode);
@@ -346,8 +349,11 @@ const main = async () => {
   document.addEventListener("input", listener);
 
   setInterval(() => {
-    inputsMap.forEach((control) => control.updatePosition());
-  }, 1000);
+    if (changed) {
+      changed = false;
+      inputsMap.forEach((control) => control.updatePosition());
+    }
+  }, 60);
 };
 
 main();
