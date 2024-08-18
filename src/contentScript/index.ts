@@ -162,8 +162,6 @@ class Control {
     this.#tooltip.textContent = "Loading...";
     document.body.appendChild(this.#tooltip);
 
-    new ResizeObserver(() => this.updatePosition()).observe(textArea);
-
     this.updatePosition();
 
     this.#button.addEventListener("mouseenter", () => this.#showTooltip());
@@ -318,8 +316,6 @@ const recursivelyAddInputs = (node: Node) => {
 
 const main = async () => {
   let observer = new MutationObserver((mutations) => {
-    inputsMap.forEach((control) => control.updatePosition());
-
     for (let mutation of mutations) {
       for (let addedNode of mutation.addedNodes) {
         recursivelyAddInputs(addedNode);
