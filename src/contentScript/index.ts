@@ -124,6 +124,11 @@ const idle = () => {
   });
 };
 
+const parseNumber = (value: string) => {
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
 class Control {
   #button: HTMLButtonElement;
   #tooltip: HTMLDivElement;
@@ -132,11 +137,12 @@ class Control {
   #result: string = "";
 
   constructor(public textArea: HTMLTextAreaElement | HTMLElement) {
+    const textAreaStyle = getComputedStyle(textArea);
     this.#button = document.createElement("button");
     this.#button.innerHTML = loadingIcon;
     this.#button.addEventListener("click", this.#onClick);
     this.#button.style.position = "absolute";
-    this.#button.style.zIndex = "99999998";
+    this.#button.style.zIndex = textAreaStyle.zIndex;
     this.#button.style.padding = "0";
     this.#button.style.border = "0";
     this.#button.style.background = "transparent";
@@ -157,7 +163,7 @@ class Control {
     this.#tooltip.style.textOverflow = "ellipsis";
     this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
     this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
-    this.#tooltip.style.zIndex = "99999999";
+    this.#tooltip.style.zIndex = `${Math.max(parseNumber(textAreaStyle.zIndex), 0) + 1}`;
     this.#tooltip.style.color = "#000";
     this.#tooltip.textContent = "Loading...";
     document.body.appendChild(this.#tooltip);
