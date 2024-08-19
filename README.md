@@ -1,6 +1,7 @@
 # ai-grammar
 
-![Basic grammar check](./assets/1.png "Basic grammar check")
+|![Basic grammar check](./assets/1.png "Basic grammar check")|![Complex Sentences](./assets/2.png "Complex Sentences")|
+|:-:|:-:|
 
 > Completely free and open source Chrome AI Grammar Check Extension
 
@@ -11,6 +12,8 @@ Instructions on how to enable AI in your browser - https://huggingface.co/blog/X
 - Completely free. No subscriptions required. No ads.
 - Absolutely safe. AI works on your machine. No data sent to the internet.
 - Smart grammar check. Checks full sentences, not only individual words.
+
+[Download from Chrome Web Store](https://chromewebstore.google.com/detail/free-ai-grammar-checker/jnkjkpapplndagboidnhphaciphgjeca)
 
 ## Installing
 
