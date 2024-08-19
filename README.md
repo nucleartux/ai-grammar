@@ -4,6 +4,14 @@
 
 > Completely free and open source Chrome AI Grammar Check Extension
 
+!! Works only on Dev and Canary versions of Chrome!
+
+Instructions on how to enable AI in your browser - https://huggingface.co/blog/Xenova/run-gemini-nano-in-your-browser#installation
+
+- Completely free. No subscriptions required. No ads.
+- Absolutely safe. AI works on your machine. No data sent to the internet.
+- Smart grammar check. Checks full sentences, not only individual words.
+
 ## Installing
 
 1. Check if your `Node.js` version is >= **14**.
