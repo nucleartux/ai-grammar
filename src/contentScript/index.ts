@@ -98,19 +98,18 @@ ${text}
   return result;
 };
 
-let supported = true;
+let supported: boolean | null = null;
 
 const isSupported = async () => {
-  if (!supported) {
-    return false;
+  if (supported === null) {
+    try {
+      const result = await ai.assistant.capabilities();
+      supported = result.available === "readily";
+    } catch {
+      supported = false;
+    }
   }
-  try {
-    const result = await ai.assistant.capabilities();
-    supported = result.available === "readily";
-    return supported;
-  } catch {
-    return false;
-  }
+  return supported;
 };
 
 const isTextArea = (
