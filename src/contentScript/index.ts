@@ -14,8 +14,12 @@ type AISession = {
 };
 
 declare const ai: {
-  createTextSession: () => Promise<AISession>;
-  canCreateTextSession: () => Promise<"readily" | "no" | "after-download">;
+  assistant: {
+    capabilities: () => Promise<{
+      available: "readily" | "no" | "after-download";
+    }>;
+    create: () => Promise<AISession>;
+  };
 };
 
 function getPageOffsetTop(elem: HTMLElement | null) {
@@ -71,7 +75,7 @@ function createDiff(str1: string, str2: string) {
 }
 
 const fixGrammar = async (text: string) => {
-  const session = await ai.createTextSession();
+  const session = await ai.assistant.create();
 
   const prompt = [
     `user: correct grammar, output only corrected text:${text}<ctrl23>`,
@@ -90,8 +94,8 @@ const isSupported = async () => {
     return false;
   }
   try {
-    const result = await ai.canCreateTextSession();
-    supported = result === "readily";
+    const result = await ai.assistant.capabilities();
+    supported = result.available === "readily";
     return supported;
   } catch {
     return false;
