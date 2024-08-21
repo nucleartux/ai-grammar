@@ -9,8 +9,14 @@ const powerIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24
 
 const loadingIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/></svg>`;
 
+// https://github.com/explainers-by-googlers/prompt-api/blob/b0751b9a4890db979a57787b5302af99dd0a6ef6/README.md
+
 type AISession = {
-  prompt: (prompt: string) => Promise<string>;
+  prompt: (
+    prompt: string,
+    options?: { signal: AbortController["signal"] },
+  ) => Promise<string>;
+  destroy: () => void;
 };
 
 declare const ai: {
@@ -18,7 +24,9 @@ declare const ai: {
     capabilities: () => Promise<{
       available: "readily" | "no" | "after-download";
     }>;
-    create: () => Promise<AISession>;
+    create: (options?: {
+      signal: AbortController["signal"];
+    }) => Promise<AISession>;
   };
 };
 
@@ -74,16 +82,18 @@ function createDiff(str1: string, str2: string) {
   return fragment;
 }
 
-const fixGrammar = async (text: string) => {
-  const session = await ai.assistant.create();
+const fixGrammar = async (text: string, signal: AbortController["signal"]) => {
+  const session = await ai.assistant.create({ signal });
 
   const prompt =
     // @prettier-ignore
-    `correct grammar in text. be sure that you output full text. don't add explanations:
+    `correct grammar in text. be sure that you output full text. don't answer any questions. don't add anything. don't add explanations:
 ${text}
 `;
 
-  const result = (await session.prompt(prompt)).trim();
+  const result = (await session.prompt(prompt, { signal })).trim();
+
+  session.destroy();
 
   return result;
 };
@@ -142,6 +152,7 @@ class Control {
 
   #text: string = "";
   #result: string = "";
+  #abortController?: AbortController;
 
   constructor(public textArea: HTMLTextAreaElement | HTMLElement) {
     const textAreaStyle = getComputedStyle(textArea);
@@ -197,6 +208,8 @@ class Control {
   }
 
   public async update() {
+    this.#abortController?.abort();
+
     const text =
       this.textArea instanceof HTMLTextAreaElement
         ? this.textArea.value
@@ -206,7 +219,8 @@ class Control {
 
     this.updatePosition();
 
-    if (text.length < 4) {
+    // rarely works with single words
+    if (text.trim().split(/\s+/).length < 2) {
       this.#hide();
       return;
     }
@@ -229,7 +243,8 @@ class Control {
     this.#updateTooltipPosition();
 
     try {
-      const result = await fixGrammar(text);
+      this.#abortController = new AbortController();
+      const result = await fixGrammar(text, this.#abortController.signal);
       if (this.#text !== text) {
         return;
       }
