@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.2.0 [2024.08.21]
+
+- feat: update to latest version of api
+- fix: adjust prompt
+
 ## 0.1.0 [2024.08.19]
 
 - feat: add contenteditable support
