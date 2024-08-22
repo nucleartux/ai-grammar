@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.1 [2024.08.22]
+
+- fix: change title
+
 ## 0.2.0 [2024.08.21]
 
 - feat: update to latest version of api
