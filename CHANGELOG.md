@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.2 [2024.09.03]
+
+- fix: fix csp
+
 ## 0.2.1 [2024.08.22]
 
 - fix: change title

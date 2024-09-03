@@ -32,5 +32,10 @@ export default defineManifest({
       ],
       matches: [],
     },
+    {
+      matches: ["http://*/*", "https://*/*"],
+      resources: ["assets/*.js"],
+      use_dynamic_url: true,
+    },
   ],
 });
