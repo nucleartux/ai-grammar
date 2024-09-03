@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.3 [2024.09.03]
+
+- fix: set minimum_chrome_version
+
 ## 0.2.2 [2024.09.03]
 
 - fix: fix csp

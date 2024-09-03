@@ -8,6 +8,7 @@ export default defineManifest({
   name: `${packageData.displayName || packageData.name}${isDev ? ` ➡️ Dev` : ""}`,
   description: packageData.description,
   version: packageData.version,
+  minimum_chrome_version: "130",
   manifest_version: 3,
   icons: {
     16: "img/icon16.png",
