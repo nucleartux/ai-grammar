@@ -1,0 +1,13 @@
+diff --git a/node_modules/@crxjs/vite-plugin/dist/index.mjs b/node_modules/@crxjs/vite-plugin/dist/index.mjs
+index c543f3e..9181e65 100644
+--- a/node_modules/@crxjs/vite-plugin/dist/index.mjs
++++ b/node_modules/@crxjs/vite-plugin/dist/index.mjs
+@@ -1921,7 +1921,7 @@ const pluginWebAccessibleResources = () => {
+                   const resource = {
+                     matches: isDynamicScript ? [...dynamicScriptMatches] : matches,
+                     resources: [...assets, ...imports],
+-                    use_dynamic_url: isDynamicScript ? dynamicScriptDynamicUrl : true
++                    use_dynamic_url: isDynamicScript ? dynamicScriptDynamicUrl : false
+                   };
+                   if (isDynamicScript || !injectCss) {
+                     resource.resources.push(...css);
