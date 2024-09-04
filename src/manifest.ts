@@ -19,7 +19,8 @@ export default defineManifest({
   content_scripts: [
     {
       all_frames: true,
-      matches: ["http://*/*", "https://*/*"],
+      run_at: "document_end",
+      matches: ["<all_urls>"],
       js: ["src/contentScript/index.ts"],
     },
   ],
@@ -32,11 +33,6 @@ export default defineManifest({
         "img/icon128.png",
       ],
       matches: [],
-    },
-    {
-      matches: ["http://*/*", "https://*/*"],
-      resources: ["assets/*.js"],
-      use_dynamic_url: true,
     },
   ],
 });

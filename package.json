@@ -2,7 +2,7 @@
   "name": "ai-grammar",
   "displayName": "AI Grammar Checker",
   "description": "Completely free and open source Chrome AI Grammar Check Extension",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "author": "Igor Adrov",
   "type": "module",
   "license": "MIT",
@@ -19,7 +19,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "fmt": "prettier --write '**/*.{tsx,ts,json,css,scss,md}'",
-    "zip": "npm run build && node src/zip.js"
+    "zip": "npm run build && node src/zip.js",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.10",
@@ -36,6 +37,7 @@
     "@vitejs/plugin-react": "^4.1.0",
     "gulp": "^4.0.2",
     "gulp-zip": "^6.0.0",
+    "patch-package": "^8.0.0",
     "prettier": "^3.0.3",
     "typescript": "^5.2.2",
     "vite": "^4.4.11"
