@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.5 [2024.09.13]
+
+- fix: fix z-index
+
 ## 0.2.4 [2024.09.04]
 
 - fix: finally fix csp

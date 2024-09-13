@@ -159,7 +159,7 @@ class Control {
     this.#button.innerHTML = loadingIcon;
     this.#button.addEventListener("click", this.#onClick);
     this.#button.style.position = "absolute";
-    this.#button.style.zIndex = textAreaStyle.zIndex;
+    this.#button.style.zIndex = `${Math.max(parseNumber(textAreaStyle.zIndex), 0) + 1}`;
     this.#button.style.padding = "0";
     this.#button.style.border = "0";
     this.#button.style.background = "transparent";
@@ -180,7 +180,7 @@ class Control {
     this.#tooltip.style.textOverflow = "ellipsis";
     this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
     this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
-    this.#tooltip.style.zIndex = `${Math.max(parseNumber(textAreaStyle.zIndex), 0) + 1}`;
+    this.#tooltip.style.zIndex = `${Math.max(parseNumber(textAreaStyle.zIndex), 0) + 2}`;
     this.#tooltip.style.color = "#000";
     this.#tooltip.textContent = "Loading...";
     document.body.appendChild(this.#tooltip);
