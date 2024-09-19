@@ -25,6 +25,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.6.10",
     "@types/diff": "^5.2.1",
+    "@types/dom-chromium-ai": "^0.0.0",
     "diff": "^5.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

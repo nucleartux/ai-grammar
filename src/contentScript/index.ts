@@ -11,25 +11,6 @@ const loadingIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="
 
 // https://github.com/explainers-by-googlers/prompt-api/blob/b0751b9a4890db979a57787b5302af99dd0a6ef6/README.md
 
-type AISession = {
-  prompt: (
-    prompt: string,
-    options?: { signal: AbortController["signal"] },
-  ) => Promise<string>;
-  destroy: () => void;
-};
-
-declare const ai: {
-  assistant: {
-    capabilities: () => Promise<{
-      available: "readily" | "no" | "after-download";
-    }>;
-    create: (options?: {
-      signal: AbortController["signal"];
-    }) => Promise<AISession>;
-  };
-};
-
 function getPageOffsetTop(elem: HTMLElement | null) {
   let offset = 0;
 
@@ -83,7 +64,7 @@ function createDiff(str1: string, str2: string) {
 }
 
 const fixGrammar = async (text: string, signal: AbortController["signal"]) => {
-  const session = await ai.assistant.create({ signal });
+  const session = await self.ai.assistant.create({ signal });
 
   const prompt =
     // @prettier-ignore
@@ -103,7 +84,7 @@ let supported: boolean | null = null;
 const isSupported = async () => {
   if (supported === null) {
     try {
-      const result = await ai.assistant.capabilities();
+      const result = await self.ai.assistant.capabilities();
       supported = result.available === "readily";
     } catch {
       supported = false;
@@ -152,7 +133,7 @@ class Tooltip {
     this.#hint = document.createElement("p");
 
     Object.assign(this.#tooltip.style, {
-      display: "flex",
+      display: "none",
       flexDirection: "column",
       gap: "4px",
       position: "absolute",
