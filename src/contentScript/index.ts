@@ -1,5 +1,10 @@
 import { computePosition, flip, shift } from "@floating-ui/dom";
 import { diffWords } from "diff";
+import type {
+  GenerateResponse,
+  GenerateRequest,
+  ListResponse,
+} from "ollama/browser";
 
 const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>`;
 
@@ -71,8 +76,13 @@ interface Provider {
 
 class GeminiProvider implements Provider {
   async isSupported() {
-    const result = await self.ai.assistant.capabilities();
-    return result.available === "readily";
+    try {
+      const result = await self.ai.assistant.capabilities();
+      return result.available === "readily";
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
   }
 
   async fixGrammar(text: string, signal: AbortController["signal"]) {
@@ -92,6 +102,48 @@ class GeminiProvider implements Provider {
     session.destroy();
 
     return result;
+  }
+}
+
+class OllamaProvider implements Provider {
+  async isSupported() {
+    try {
+      const result: ListResponse | null = await chrome.runtime.sendMessage({
+        type: "ollama.list",
+      });
+
+      if (!result) {
+        return false;
+      }
+
+      return result.models.length > 0;
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
+  }
+
+  async fixGrammar(text: string, signal: AbortController["signal"]) {
+    const prompt =
+      // @prettier-ignore
+      `correct grammar:
+  ${text}
+  `;
+
+    const response: GenerateResponse | null = await chrome.runtime.sendMessage({
+      type: "ollama.generate",
+      data: {
+        model: "llama3.1",
+        prompt,
+        system: "correct grammar in text, don't add explanations",
+      } satisfies GenerateRequest,
+    });
+
+    if (!response) {
+      throw new Error("Something went wrong. Please try again.");
+    }
+
+    return response.response;
   }
 }
 
@@ -399,7 +451,7 @@ const recursivelyAddInputs = (node: Node, provider: Provider | null) => {
 let changed = false;
 
 const main = async () => {
-  const providers = [new GeminiProvider()];
+  const providers = [new OllamaProvider(), new GeminiProvider()];
 
   let provider: Provider | null = null;
 
