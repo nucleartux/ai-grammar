@@ -61,38 +61,39 @@ function createDiff(str1: string, str2: string) {
   return fragment;
 }
 
-const fixGrammar = async (text: string, signal: AbortController["signal"]) => {
-  const session = await self.ai.assistant.create({
-    signal,
-    systemPrompt: "correct grammar in text, don't add explanations",
-  });
+interface Provider {
+  isSupported: () => Promise<boolean>;
+  fixGrammar: (
+    text: string,
+    signal: AbortController["signal"],
+  ) => Promise<string>;
+}
 
-  const prompt =
-    // @prettier-ignore
-    `correct grammar:
-${text}
-`;
-
-  const result = (await session.prompt(prompt, { signal })).trim();
-
-  session.destroy();
-
-  return result;
-};
-
-let supported: boolean | null = null;
-
-const isSupported = async () => {
-  if (supported === null) {
-    try {
-      const result = await self.ai.assistant.capabilities();
-      supported = result.available === "readily";
-    } catch {
-      supported = false;
-    }
+class GeminiProvider implements Provider {
+  async isSupported() {
+    const result = await self.ai.assistant.capabilities();
+    return result.available === "readily";
   }
-  return supported;
-};
+
+  async fixGrammar(text: string, signal: AbortController["signal"]) {
+    const session = await self.ai.assistant.create({
+      signal,
+      systemPrompt: "correct grammar in text, don't add explanations",
+    });
+
+    const prompt =
+      // @prettier-ignore
+      `correct grammar:
+  ${text}
+  `;
+
+    const result = (await session.prompt(prompt, { signal })).trim();
+
+    session.destroy();
+
+    return result;
+  }
+}
 
 const isTextArea = (
   node: Node | EventTarget,
@@ -229,8 +230,13 @@ class Control {
   #text: string = "";
   #result: string = "";
   #abortController?: AbortController;
+  #provider: Provider | null;
 
-  constructor(public textArea: HTMLTextAreaElement | HTMLElement) {
+  constructor(
+    public textArea: HTMLTextAreaElement | HTMLElement,
+    provider: Provider | null,
+  ) {
+    this.#provider = provider;
     const textAreaStyle = getComputedStyle(textArea);
     this.#button = document.createElement("button");
     this.#button.innerHTML = loadingIcon;
@@ -284,7 +290,7 @@ class Control {
       return;
     }
 
-    if (!(await isSupported())) {
+    if (!this.#provider) {
       this.#button.style.display = "block";
       this.#button.innerHTML = powerIcon;
       this.updatePosition();
@@ -300,7 +306,10 @@ class Control {
 
     try {
       this.#abortController = new AbortController();
-      const result = await fixGrammar(text, this.#abortController.signal);
+      const result = await this.#provider.fixGrammar(
+        text,
+        this.#abortController.signal,
+      );
       if (this.#text !== text) {
         return;
       }
@@ -312,9 +321,12 @@ class Control {
       }
 
       this.#tooltip.text = createDiff(text, result);
-    } catch (e) {
+    } catch (e: any) {
       console.warn(e);
-      this.#tooltip.text = "Something went wrong. Please try again.";
+      const message = e?.message ?? e?.toString();
+      this.#tooltip.text =
+        "Something went wrong. Please try again." +
+        (message ? ` (${message})` : "");
       this.#button.innerHTML = powerIcon;
     }
   }
@@ -357,7 +369,7 @@ class Control {
 
 const inputsMap = new Map<HTMLTextAreaElement | HTMLElement, Control>();
 
-const listener = async (e: Event) => {
+const listener = (provider: Provider | null) => async (e: Event) => {
   const target = e.target;
 
   if (!target || !isTextArea(target)) {
@@ -366,18 +378,18 @@ const listener = async (e: Event) => {
 
   let control = inputsMap.get(target);
   if (!control) {
-    control = new Control(target);
+    control = new Control(target, provider);
     inputsMap.set(target, control);
   }
   control.update();
 };
 
-const recursivelyAddInputs = (node: Node) => {
+const recursivelyAddInputs = (node: Node, provider: Provider | null) => {
   const inputs = recursivelyFindAllTextAreas(node);
   for (let input of inputs) {
     let control = inputsMap.get(input);
     if (!control) {
-      control = new Control(input);
+      control = new Control(input, provider);
       inputsMap.set(input, control);
       control.update();
     }
@@ -387,11 +399,22 @@ const recursivelyAddInputs = (node: Node) => {
 let changed = false;
 
 const main = async () => {
+  const providers = [new GeminiProvider()];
+
+  let provider: Provider | null = null;
+
+  for (let p of providers) {
+    if (await p.isSupported()) {
+      provider = p;
+      break;
+    }
+  }
+
   let observer = new MutationObserver((mutations) => {
     changed = true;
     for (let mutation of mutations) {
       for (let addedNode of mutation.addedNodes) {
-        recursivelyAddInputs(addedNode);
+        recursivelyAddInputs(addedNode, provider);
       }
 
       for (let removedNode of mutation.removedNodes) {
@@ -408,9 +431,9 @@ const main = async () => {
   });
   observer.observe(document, { childList: true, subtree: true });
 
-  recursivelyAddInputs(document);
+  recursivelyAddInputs(document, provider);
 
-  document.addEventListener("input", listener);
+  document.addEventListener("input", listener(provider));
 
   setInterval(() => {
     if (changed) {
