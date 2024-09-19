@@ -142,49 +142,85 @@ const parseNumber = (value: string) => {
 class Tooltip {
   #tooltip: HTMLDivElement;
   #button: HTMLButtonElement;
+  #text: HTMLParagraphElement;
+  #hint: HTMLParagraphElement;
 
   constructor(zIndex: number, button: HTMLButtonElement) {
     this.#button = button;
     this.#tooltip = document.createElement("div");
-    this.#tooltip.style.display = "none";
-    this.#tooltip.style.position = "absolute";
-    this.#tooltip.style.background = "#fff";
-    this.#tooltip.style.borderRadius = "4px";
-    this.#tooltip.style.padding = "8px";
-    this.#tooltip.style.fontSize = "16px";
-    this.#tooltip.style.whiteSpace = "pre-wrap";
-    this.#tooltip.style.width = "max-content";
-    this.#tooltip.style.maxWidth = "300px";
-    this.#tooltip.style.maxHeight = "300px";
-    this.#tooltip.style.overflow = "hidden";
-    this.#tooltip.style.textOverflow = "ellipsis";
-    this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
-    this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
-    this.#tooltip.style.zIndex = `${zIndex}`;
-    this.#tooltip.style.color = "#000";
-    this.#tooltip.textContent = "Loading...";
+    this.#text = document.createElement("p");
+    this.#hint = document.createElement("p");
+
+    Object.assign(this.#tooltip.style, {
+      display: "flex",
+      flexDirection: "column",
+      gap: "4px",
+      position: "absolute",
+      background: "#fff",
+      borderRadius: "4px",
+      padding: "8px",
+      whiteSpace: "pre-wrap",
+      width: "max-content",
+      maxWidth: "300px",
+      maxHeight: "300px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      fontFamily: "system-ui, Arial, sans-serif",
+      boxShadow: "0 0 4px rgba(0, 0, 0, 0.2)",
+      zIndex: `${zIndex}`,
+    });
+
+    this.#text.textContent = "Loading...";
+
+    Object.assign(this.#text.style, {
+      color: "#000",
+      fontSize: "16px",
+      margin: "0",
+    });
+
+    Object.assign(this.#hint.style, {
+      display: "none",
+      fontSize: "12px",
+      color: "#666",
+      margin: "0",
+    });
+
+    this.#tooltip.appendChild(this.#hint);
+    this.#tooltip.appendChild(this.#text);
 
     document.body.appendChild(this.#tooltip);
   }
 
   show() {
-    this.#tooltip.style.display = "block";
+    this.hint = null;
+    this.#tooltip.style.display = "flex";
 
     this.#updateTooltipPosition();
   }
 
   hide() {
     this.#tooltip.style.display = "none";
+    this.hint = null;
   }
 
   set text(text: string | DocumentFragment) {
     if (text instanceof DocumentFragment) {
-      this.#tooltip.textContent = "";
-      this.#tooltip.appendChild(text);
+      this.#text.textContent = "";
+      this.#text.appendChild(text);
     } else {
-      this.#tooltip.textContent = text;
+      this.#text.textContent = text;
     }
     this.#updateTooltipPosition();
+  }
+
+  set hint(text: string | null) {
+    if (text) {
+      this.#hint.textContent = text;
+      this.#hint.style.display = "block";
+    } else {
+      this.#hint.textContent = "";
+      this.#hint.style.display = "none";
+    }
   }
 
   #updateTooltipPosition() {
@@ -318,6 +354,7 @@ class Control {
       const blob = new Blob([this.#result], { type });
       const data = [new ClipboardItem({ [type]: blob })];
       await navigator.clipboard.write(data);
+      this.#tooltip.hint = "Copied to clipboard";
     }
   };
 
