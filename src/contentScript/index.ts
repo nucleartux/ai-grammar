@@ -134,20 +134,79 @@ const recursivelyFindAllTextAreas = (node: Node) => {
   return inputs;
 };
 
-const idle = () => {
-  return new Promise((resolve) => {
-    requestIdleCallback(resolve);
-  });
-};
-
 const parseNumber = (value: string) => {
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+class Tooltip {
+  #tooltip: HTMLDivElement;
+  #button: HTMLButtonElement;
+
+  constructor(zIndex: number, button: HTMLButtonElement) {
+    this.#button = button;
+    this.#tooltip = document.createElement("div");
+    this.#tooltip.style.display = "none";
+    this.#tooltip.style.position = "absolute";
+    this.#tooltip.style.background = "#fff";
+    this.#tooltip.style.borderRadius = "4px";
+    this.#tooltip.style.padding = "8px";
+    this.#tooltip.style.fontSize = "16px";
+    this.#tooltip.style.whiteSpace = "pre-wrap";
+    this.#tooltip.style.width = "max-content";
+    this.#tooltip.style.maxWidth = "300px";
+    this.#tooltip.style.maxHeight = "300px";
+    this.#tooltip.style.overflow = "hidden";
+    this.#tooltip.style.textOverflow = "ellipsis";
+    this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
+    this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
+    this.#tooltip.style.zIndex = `${zIndex}`;
+    this.#tooltip.style.color = "#000";
+    this.#tooltip.textContent = "Loading...";
+
+    document.body.appendChild(this.#tooltip);
+  }
+
+  show() {
+    this.#tooltip.style.display = "block";
+
+    this.#updateTooltipPosition();
+  }
+
+  hide() {
+    this.#tooltip.style.display = "none";
+  }
+
+  set text(text: string | DocumentFragment) {
+    if (text instanceof DocumentFragment) {
+      this.#tooltip.textContent = "";
+      this.#tooltip.appendChild(text);
+    } else {
+      this.#tooltip.textContent = text;
+    }
+    this.#updateTooltipPosition();
+  }
+
+  #updateTooltipPosition() {
+    computePosition(this.#button, this.#tooltip, {
+      placement: "bottom",
+      middleware: [flip(), shift({ padding: 5 })],
+    }).then(({ x, y }) => {
+      Object.assign(this.#tooltip.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+      });
+    });
+  }
+
+  destroy() {
+    this.#tooltip.remove();
+  }
+}
+
 class Control {
   #button: HTMLButtonElement;
-  #tooltip: HTMLDivElement;
+  #tooltip: Tooltip;
 
   #text: string = "";
   #result: string = "";
@@ -165,25 +224,10 @@ class Control {
     this.#button.style.background = "transparent";
     this.#button.style.cursor = "pointer";
     document.body.appendChild(this.#button);
-    this.#tooltip = document.createElement("div");
-    this.#tooltip.style.display = "none";
-    this.#tooltip.style.position = "absolute";
-    this.#tooltip.style.background = "#fff";
-    this.#tooltip.style.borderRadius = "4px";
-    this.#tooltip.style.padding = "8px";
-    this.#tooltip.style.fontSize = "16px";
-    this.#tooltip.style.whiteSpace = "pre-wrap";
-    this.#tooltip.style.width = "max-content";
-    this.#tooltip.style.maxWidth = "300px";
-    this.#tooltip.style.maxHeight = "300px";
-    this.#tooltip.style.overflow = "hidden";
-    this.#tooltip.style.textOverflow = "ellipsis";
-    this.#tooltip.style.fontFamily = "system-ui, Arial, sans-serif";
-    this.#tooltip.style.boxShadow = "0 0 4px rgba(0, 0, 0, 0.2)";
-    this.#tooltip.style.zIndex = `${Math.max(parseNumber(textAreaStyle.zIndex), 0) + 2}`;
-    this.#tooltip.style.color = "#000";
-    this.#tooltip.textContent = "Loading...";
-    document.body.appendChild(this.#tooltip);
+    this.#tooltip = new Tooltip(
+      Math.max(parseNumber(textAreaStyle.zIndex), 0) + 2,
+      this.#button,
+    );
 
     this.updatePosition();
 
@@ -197,13 +241,11 @@ class Control {
     if (this.#isCorrect) {
       return;
     }
-    this.#tooltip.style.display = "block";
-
-    this.#updateTooltipPosition();
+    this.#tooltip.show();
   }
 
   #hideTooltip() {
-    this.#tooltip.style.display = "none";
+    this.#tooltip.hide();
   }
 
   public async update() {
@@ -224,22 +266,19 @@ class Control {
       return;
     }
 
-    await idle();
-
     if (!(await isSupported())) {
       this.#button.style.display = "block";
-      this.#tooltip.textContent =
-        "AI is not supported. Please enable it in your browser settings.";
       this.#button.innerHTML = powerIcon;
-      this.#updateTooltipPosition();
       this.updatePosition();
+
+      this.#tooltip.text =
+        "AI is not supported. Please enable it in your browser settings.";
       return;
     }
 
     this.#button.style.display = "block";
     this.#button.innerHTML = loadingIcon;
-    this.#tooltip.textContent = "Loading...";
-    this.#updateTooltipPosition();
+    this.#tooltip.text = "Loading...";
 
     try {
       this.#abortController = new AbortController();
@@ -254,14 +293,10 @@ class Control {
         this.#hideTooltip();
       }
 
-      this.#tooltip.textContent = "";
-      this.#tooltip.appendChild(createDiff(text, result));
-
-      this.#updateTooltipPosition();
+      this.#tooltip.text = createDiff(text, result);
     } catch {
-      this.#tooltip.textContent = "Something went wrong. Please try again.";
+      this.#tooltip.text = "Something went wrong. Please try again.";
       this.#button.innerHTML = powerIcon;
-      this.#updateTooltipPosition();
     }
   }
 
@@ -269,18 +304,6 @@ class Control {
     const rect = this.textArea.getBoundingClientRect();
     this.#button.style.top = `${getPageOffsetTop(this.textArea) + rect.top + rect.height - 24 - 8}px`;
     this.#button.style.left = `${getPageOffsetLeft(this.textArea) + rect.left + rect.width - 24 - 8}px`;
-  }
-
-  #updateTooltipPosition() {
-    computePosition(this.#button, this.#tooltip, {
-      placement: "bottom",
-      middleware: [flip(), shift({ padding: 5 })],
-    }).then(({ x, y }) => {
-      Object.assign(this.#tooltip.style, {
-        left: `${x}px`,
-        top: `${y}px`,
-      });
-    });
   }
 
   #onClick = async () => {
@@ -308,7 +331,7 @@ class Control {
 
   destroy() {
     this.#button.remove();
-    this.#tooltip.remove();
+    this.#tooltip.destroy();
   }
 }
 
