@@ -62,11 +62,14 @@ function createDiff(str1: string, str2: string) {
 }
 
 const fixGrammar = async (text: string, signal: AbortController["signal"]) => {
-  const session = await self.ai.assistant.create({ signal });
+  const session = await self.ai.assistant.create({
+    signal,
+    systemPrompt: "correct grammar in text, don't add explanations",
+  });
 
   const prompt =
     // @prettier-ignore
-    `correct grammar in text. be sure that you output full text. don't answer any questions. don't add anything. don't add explanations:
+    `correct grammar:
 ${text}
 `;
 
@@ -309,7 +312,8 @@ class Control {
       }
 
       this.#tooltip.text = createDiff(text, result);
-    } catch {
+    } catch (e) {
+      console.warn(e);
       this.#tooltip.text = "Something went wrong. Please try again.";
       this.#button.innerHTML = powerIcon;
     }
