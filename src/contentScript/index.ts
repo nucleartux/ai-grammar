@@ -418,36 +418,42 @@ class Control {
   }
 }
 
-const inputsMap = new Map<HTMLTextAreaElement | HTMLElement, Control>();
+let control: Control | null = null;
 
-const listener = (provider: Provider | null) => async (e: Event) => {
+const inputListener = (provider: Provider | null) => async (e: Event) => {
   const target = e.target;
 
   if (!target || !isTextArea(target)) {
     return;
   }
 
-  let control = inputsMap.get(target);
-  if (!control) {
-    control = new Control(target, provider);
-    inputsMap.set(target, control);
+  if (target === control?.textArea) {
+    control.update();
+    return;
   }
+
+  control?.destroy();
+
+  control = new Control(target, provider);
   control.update();
 };
 
-const recursivelyAddInputs = (node: Node, provider: Provider | null) => {
-  const inputs = recursivelyFindAllTextAreas(node);
-  for (let input of inputs) {
-    let control = inputsMap.get(input);
-    if (!control) {
-      control = new Control(input, provider);
-      inputsMap.set(input, control);
-      control.update();
-    }
-  }
-};
+const focusListener = (provider: Provider | null) => async (e: Event) => {
+  const target = e.target;
 
-let changed = false;
+  if (!target || !isTextArea(target)) {
+    return;
+  }
+
+  if (target === control?.textArea) {
+    return;
+  }
+
+  control?.destroy();
+
+  control = new Control(target, provider);
+  control.update();
+};
 
 const main = async () => {
   const providers = [new OllamaProvider(), new GeminiProvider()];
@@ -461,35 +467,24 @@ const main = async () => {
     }
   }
 
-  let observer = new MutationObserver((mutations) => {
-    changed = true;
-    for (let mutation of mutations) {
-      for (let addedNode of mutation.addedNodes) {
-        recursivelyAddInputs(addedNode, provider);
-      }
+  let changed = false;
 
-      for (let removedNode of mutation.removedNodes) {
-        const inputs = recursivelyFindAllTextAreas(removedNode);
-        for (let input of inputs) {
-          const control = inputsMap.get(input);
-          if (control) {
-            control.destroy();
-            inputsMap.delete(input);
-          }
-        }
-      }
+  const observer = new MutationObserver(() => {
+    changed = true;
+    if (control?.textArea && !document.body.contains(control?.textArea)) {
+      control?.destroy();
+      control = null;
     }
   });
   observer.observe(document, { childList: true, subtree: true });
 
-  recursivelyAddInputs(document, provider);
-
-  document.addEventListener("input", listener(provider));
+  document.addEventListener("input", inputListener(provider));
+  document.addEventListener("focus", focusListener(provider), true);
 
   setInterval(() => {
     if (changed) {
       changed = false;
-      inputsMap.forEach((control) => control.updatePosition());
+      control?.updatePosition();
     }
   }, 60);
 };
