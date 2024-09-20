@@ -68,13 +68,12 @@ function createDiff(str1: string, str2: string) {
 
 interface Provider {
   isSupported: () => Promise<boolean>;
-  fixGrammar: (
-    text: string,
-    signal: AbortController["signal"],
-  ) => Promise<string>;
+  fixGrammar: (text: string) => Promise<string>;
 }
 
 class GeminiProvider implements Provider {
+  #abortController = new AbortController();
+
   async isSupported() {
     try {
       const result = await self.ai.assistant.capabilities();
@@ -85,9 +84,11 @@ class GeminiProvider implements Provider {
     }
   }
 
-  async fixGrammar(text: string, signal: AbortController["signal"]) {
+  async fixGrammar(text: string) {
+    this.#abortController.abort();
+    this.#abortController = new AbortController();
     const session = await self.ai.assistant.create({
-      signal,
+      signal: this.#abortController.signal,
       systemPrompt: "correct grammar in text, don't add explanations",
     });
 
@@ -97,7 +98,9 @@ class GeminiProvider implements Provider {
   ${text}
   `;
 
-    const result = (await session.prompt(prompt, { signal })).trim();
+    const result = (
+      await session.prompt(prompt, { signal: this.#abortController.signal })
+    ).trim();
 
     session.destroy();
 
@@ -123,7 +126,7 @@ class OllamaProvider implements Provider {
     }
   }
 
-  async fixGrammar(text: string, signal: AbortController["signal"]) {
+  async fixGrammar(text: string) {
     const prompt =
       // @prettier-ignore
       `correct grammar:
@@ -281,7 +284,6 @@ class Control {
 
   #text: string = "";
   #result: string = "";
-  #abortController?: AbortController;
   #provider: Provider | null;
 
   constructor(
@@ -325,8 +327,6 @@ class Control {
   }
 
   public async update() {
-    this.#abortController?.abort();
-
     const text =
       this.textArea instanceof HTMLTextAreaElement
         ? this.textArea.value
@@ -357,11 +357,7 @@ class Control {
     this.#tooltip.text = "Loading...";
 
     try {
-      this.#abortController = new AbortController();
-      const result = await this.#provider.fixGrammar(
-        text,
-        this.#abortController.signal,
-      );
+      const result = await this.#provider.fixGrammar(text);
       if (this.#text !== text) {
         return;
       }
