@@ -23,26 +23,17 @@ const resultFromPromise = <T>(promise: Promise<T>): Promise<Result<T>> => {
   );
 };
 
-function getPageOffsetTop(elem: HTMLElement | null) {
-  let offset = 0;
+function getPageOffset(elem: HTMLElement | null) {
+  let top = 0;
+  let left = 0;
 
   while (elem != document.documentElement) {
     elem = elem?.parentElement ?? null;
-    offset += elem?.scrollTop ?? 0;
+    top += elem?.scrollTop ?? 0;
+    left += elem?.scrollLeft ?? 0;
   }
 
-  return offset;
-}
-
-function getPageOffsetLeft(elem: HTMLElement | null) {
-  let offset = 0;
-
-  while (elem != document.documentElement) {
-    elem = elem?.parentElement ?? null;
-    offset += elem?.scrollLeft ?? 0;
-  }
-
-  return offset;
+  return [left, top] as const;
 }
 
 function createDiff(str1: string, str2: string) {
@@ -392,8 +383,9 @@ class Control {
 
   public updatePosition() {
     const rect = this.textArea.getBoundingClientRect();
-    this.#button.style.top = `${getPageOffsetTop(this.textArea) + rect.top + rect.height - 24 - 8}px`;
-    this.#button.style.left = `${getPageOffsetLeft(this.textArea) + rect.left + rect.width - 24 - 8}px`;
+    const [left, top] = getPageOffset(this.textArea);
+    this.#button.style.left = `${left + rect.left + rect.width - 24 - 8}px`;
+    this.#button.style.top = `${top + rect.top + rect.height - 24 - 8}px`;
   }
 
   #onClick = async () => {
