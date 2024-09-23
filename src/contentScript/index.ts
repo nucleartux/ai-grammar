@@ -1,10 +1,13 @@
-import { computePosition, flip, shift } from "@floating-ui/dom";
+import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { diffWords } from "diff";
 import type {
   GenerateResponse,
   GenerateRequest,
   ListResponse,
 } from "ollama/browser";
+
+const buttonSize = 24;
+const buttonPadding = 8;
 
 const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>`;
 
@@ -21,6 +24,27 @@ const resultFromPromise = <T>(promise: Promise<T>): Promise<Result<T>> => {
     (value) => ({ ok: true, value }),
     (error) => ({ ok: false, error }),
   );
+};
+
+const isVisible = (el: HTMLElement, parent: HTMLElement) => {
+  const rect = el.getBoundingClientRect();
+
+  // check coords on the left of the button to handle cases with little textarea (twitter)
+  const coords = [
+    [rect.left - buttonSize - 1, rect.top + 4],
+    [rect.right - buttonSize - 1, rect.top + 4],
+    [rect.right - buttonSize - 1, rect.bottom - 4],
+    [rect.left - buttonSize - 1, rect.bottom - 4],
+  ];
+
+  for (let coord of coords) {
+    const other = document.elementFromPoint(coord[0], coord[1]);
+    if (!(other && (parent === other || parent.contains(other)))) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 function createDiff(str1: string, str2: string) {
@@ -159,11 +183,6 @@ const recursivelyFindAllTextAreas = (node: Node) => {
   return inputs;
 };
 
-const parseNumber = (value: string) => {
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
 class Tooltip {
   #tooltip: HTMLDivElement;
   #button: HTMLButtonElement;
@@ -252,7 +271,7 @@ class Tooltip {
   #updateTooltipPosition() {
     computePosition(this.#button, this.#tooltip, {
       placement: "bottom",
-      middleware: [flip(), shift({ padding: 5 })],
+      middleware: [flip(), shift({ padding: 5 }), offset({ mainAxis: 2 })],
     }).then(({ x, y }) => {
       Object.assign(this.#tooltip.style, {
         left: `${x}px`,
@@ -280,6 +299,9 @@ class Control {
   #text: string = "";
   #result: string = "";
   #provider: Provider | null;
+  #updateInterval: ReturnType<typeof setInterval> | null = null;
+  #isVisible: boolean = false;
+  #showButton: boolean = false;
 
   constructor(
     public textArea: HTMLTextAreaElement | HTMLElement,
@@ -307,6 +329,10 @@ class Control {
     this.#button.addEventListener("mouseleave", () => this.#hideTooltip());
     this.#button.addEventListener("focus", () => this.#showTooltip());
     this.#button.addEventListener("blur", () => this.#hideTooltip());
+
+    this.#updateInterval = setInterval(() => {
+      control?.updatePosition();
+    }, 60);
   }
 
   #showTooltip() {
@@ -323,27 +349,27 @@ class Control {
   #setState(state: State) {
     switch (state.type) {
       case "empty":
-        this.#button.style.display = "none";
+        this.#hide();
         return;
       case "loading":
-        this.#button.style.display = "block";
+        this.#show();
         this.#button.innerHTML = loadingIcon;
         this.#tooltip.text = "Loading...";
         return;
       case "correct":
-        this.#button.style.display = "block";
+        this.#show();
         this.#button.innerHTML = checkIcon;
 
         this.#hideTooltip();
 
         return;
       case "wrong":
-        this.#button.style.display = "block";
+        this.#show();
         this.#button.innerHTML = infoIcon;
         this.#tooltip.text = state.text;
         return;
       case "error":
-        this.#button.style.display = "block";
+        this.#show();
         this.#button.innerHTML = powerIcon;
         this.#tooltip.text = state.text;
         return;
@@ -406,8 +432,11 @@ class Control {
 
   public updatePosition() {
     const rect = this.textArea.getBoundingClientRect();
-    this.#button.style.left = `${rect.left + rect.width - 24 - 8}px`;
-    this.#button.style.top = `${rect.top + rect.height - 24 - 8}px`;
+    this.#button.style.left = `${rect.right - buttonSize - buttonPadding}px`;
+    this.#button.style.top = `${rect.bottom - buttonSize - buttonPadding}px`;
+
+    this.#isVisible = isVisible(this.#button, this.textArea);
+    this.#updateButtonVisibility();
   }
 
   #onClick = async () => {
@@ -426,8 +455,22 @@ class Control {
     }
   };
 
+  #updateButtonVisibility() {
+    if (this.#isVisible && this.#showButton) {
+      this.#button.style.opacity = "1";
+    } else {
+      this.#button.style.opacity = "0";
+    }
+  }
+
+  #show() {
+    this.#showButton = true;
+    this.#updateButtonVisibility();
+  }
+
   #hide() {
-    this.#button.style.display = "none";
+    this.#showButton = false;
+    this.#updateButtonVisibility();
   }
 
   get #isCorrect() {
@@ -437,6 +480,9 @@ class Control {
   destroy() {
     this.#button.remove();
     this.#tooltip.destroy();
+    if (this.#updateInterval) {
+      clearInterval(this.#updateInterval);
+    }
   }
 
   isSameElement(el: EventTarget | null) {
@@ -472,8 +518,6 @@ const focusListener = (provider: Provider | null) => async (e: Event) => {
   }
 
   if (!target || !isTextArea(target)) {
-    control?.destroy();
-    control = null;
     return;
   }
 
@@ -505,10 +549,6 @@ const main = async () => {
 
   document.addEventListener("input", inputListener(provider));
   document.addEventListener("focus", focusListener(provider), true);
-
-  setInterval(() => {
-    control?.updatePosition();
-  }, 60);
 };
 
 main();
