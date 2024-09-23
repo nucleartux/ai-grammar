@@ -246,6 +246,7 @@ class Tooltip {
       this.#hint.textContent = "";
       this.#hint.style.display = "none";
     }
+    this.#updateTooltipPosition();
   }
 
   #updateTooltipPosition() {
@@ -285,21 +286,20 @@ class Control {
     provider: Provider | null,
   ) {
     this.#provider = provider;
-    const textAreaStyle = getComputedStyle(textArea);
     this.#button = document.createElement("button");
     this.#button.innerHTML = loadingIcon;
     this.#button.addEventListener("click", this.#onClick);
-    this.#button.style.position = "absolute";
-    this.#button.style.zIndex = `${Math.max(parseNumber(textAreaStyle.zIndex), 0) + 1}`;
-    this.#button.style.padding = "0";
-    this.#button.style.border = "0";
-    this.#button.style.background = "transparent";
-    this.#button.style.cursor = "pointer";
+    Object.assign(this.#button.style, {
+      position: "absolute",
+      zIndex: `${99999999999}`,
+      padding: "0",
+      border: "0",
+      background: "transparent",
+      cursor: "pointer",
+      outline: "none",
+    });
     document.body.appendChild(this.#button);
-    this.#tooltip = new Tooltip(
-      Math.max(parseNumber(textAreaStyle.zIndex), 0) + 2,
-      this.#button,
-    );
+    this.#tooltip = new Tooltip(99999999999, this.#button);
 
     this.updatePosition();
 
@@ -438,6 +438,10 @@ class Control {
     this.#button.remove();
     this.#tooltip.destroy();
   }
+
+  isSameElement(el: EventTarget | null) {
+    return this.textArea === el || this.#button == el;
+  }
 }
 
 let control: Control | null = null;
@@ -463,11 +467,13 @@ const inputListener = (provider: Provider | null) => async (e: Event) => {
 const focusListener = (provider: Provider | null) => async (e: Event) => {
   const target = e.target;
 
-  if (!target || !isTextArea(target)) {
+  if (control?.isSameElement(target)) {
     return;
   }
 
-  if (target === control?.textArea) {
+  if (!target || !isTextArea(target)) {
+    control?.destroy();
+    control = null;
     return;
   }
 
