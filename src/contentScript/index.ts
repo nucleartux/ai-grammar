@@ -23,19 +23,6 @@ const resultFromPromise = <T>(promise: Promise<T>): Promise<Result<T>> => {
   );
 };
 
-function getPageOffset(elem: HTMLElement | null) {
-  let top = 0;
-  let left = 0;
-
-  while (elem != document.documentElement) {
-    elem = elem?.parentElement ?? null;
-    top += elem?.scrollTop ?? 0;
-    left += elem?.scrollLeft ?? 0;
-  }
-
-  return [left, top] as const;
-}
-
 function createDiff(str1: string, str2: string) {
   const diff = diffWords(str1, str2);
   const fragment = document.createDocumentFragment();
@@ -419,9 +406,8 @@ class Control {
 
   public updatePosition() {
     const rect = this.textArea.getBoundingClientRect();
-    const [left, top] = getPageOffset(this.textArea);
-    this.#button.style.left = `${left + rect.left + rect.width - 24 - 8}px`;
-    this.#button.style.top = `${top + rect.top + rect.height - 24 - 8}px`;
+    this.#button.style.left = `${rect.left + rect.width - 24 - 8}px`;
+    this.#button.style.top = `${rect.top + rect.height - 24 - 8}px`;
   }
 
   #onClick = async () => {
@@ -503,10 +489,7 @@ const main = async () => {
     }
   }
 
-  let changed = false;
-
   const observer = new MutationObserver(() => {
-    changed = true;
     if (control?.textArea && !document.body.contains(control?.textArea)) {
       control?.destroy();
       control = null;
@@ -518,10 +501,7 @@ const main = async () => {
   document.addEventListener("focus", focusListener(provider), true);
 
   setInterval(() => {
-    if (changed) {
-      changed = false;
-      control?.updatePosition();
-    }
+    control?.updatePosition();
   }, 60);
 };
 
