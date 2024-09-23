@@ -278,6 +278,13 @@ class Tooltip {
   }
 }
 
+type State =
+  | { type: "empty" }
+  | { type: "loading" }
+  | { type: "correct" }
+  | { type: "wrong"; text: DocumentFragment }
+  | { type: "error"; text: string };
+
 class Control {
   #button: HTMLButtonElement;
   #tooltip: Tooltip;
@@ -326,6 +333,36 @@ class Control {
     this.#tooltip.hide();
   }
 
+  #setState(state: State) {
+    switch (state.type) {
+      case "empty":
+        this.#button.style.display = "none";
+        return;
+      case "loading":
+        this.#button.style.display = "block";
+        this.#button.innerHTML = loadingIcon;
+        this.#tooltip.text = "Loading...";
+        return;
+      case "correct":
+        this.#button.style.display = "block";
+        this.#button.innerHTML = checkIcon;
+
+        this.#hideTooltip();
+
+        return;
+      case "wrong":
+        this.#button.style.display = "block";
+        this.#button.innerHTML = infoIcon;
+        this.#tooltip.text = state.text;
+        return;
+      case "error":
+        this.#button.style.display = "block";
+        this.#button.innerHTML = powerIcon;
+        this.#tooltip.text = state.text;
+        return;
+    }
+  }
+
   public async update() {
     const text =
       this.textArea instanceof HTMLTextAreaElement
@@ -336,48 +373,47 @@ class Control {
 
     this.updatePosition();
 
+    if (!this.#provider) {
+      this.#setState({
+        type: "error",
+        text: "AI is not supported. Please enable it in your browser settings.",
+      });
+      return;
+    }
+
     // rarely works with single words
     if (text.trim().split(/\s+/).length < 2) {
-      this.#hide();
+      this.#setState({ type: "empty" });
       return;
     }
 
-    if (!this.#provider) {
-      this.#button.style.display = "block";
-      this.#button.innerHTML = powerIcon;
-      this.updatePosition();
-
-      this.#tooltip.text =
-        "AI is not supported. Please enable it in your browser settings.";
-      return;
-    }
-
-    this.#button.style.display = "block";
-    this.#button.innerHTML = loadingIcon;
-    this.#tooltip.text = "Loading...";
+    this.#setState({ type: "loading" });
 
     const result = await resultFromPromise(this.#provider.fixGrammar(text));
+
     if (this.#text !== text) {
       return;
     }
 
-    if (result.ok) {
-      this.#result = result.value;
-
-      this.#button.innerHTML = this.#isCorrect ? checkIcon : infoIcon;
-      if (this.#isCorrect) {
-        this.#hideTooltip();
-      }
-
-      this.#tooltip.text = createDiff(text, result.value);
-    } else {
+    if (!result.ok) {
       const error = result.error as any;
       console.warn(error);
       const message = error?.message ?? error?.toString();
-      this.#tooltip.text =
-        "Something went wrong. Please try again." +
-        (message ? ` (${message})` : "");
-      this.#button.innerHTML = powerIcon;
+      this.#setState({
+        type: "error",
+        text:
+          "Something went wrong. Please try again." +
+          (message ? ` (${message})` : ""),
+      });
+      return;
+    }
+
+    this.#result = result.value;
+
+    if (this.#isCorrect) {
+      this.#setState({ type: "correct" });
+    } else {
+      this.#setState({ type: "wrong", text: createDiff(text, result.value) });
     }
   }
 
