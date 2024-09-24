@@ -507,8 +507,10 @@ class Control {
   #updateButtonVisibility() {
     if (this.#isVisible && this.#showButton) {
       this.#button.style.opacity = "1";
+      this.#button.style.pointerEvents = "auto";
     } else {
       this.#button.style.opacity = "0";
+      this.#button.style.pointerEvents = "none";
     }
   }
 
