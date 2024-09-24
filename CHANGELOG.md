@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.0 [2024.09.24]
+
+- feat: add Ollama support
+
 ## 0.2.5 [2024.09.13]
 
 - fix: fix z-index
