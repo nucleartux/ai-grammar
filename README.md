@@ -15,11 +15,18 @@
 
 For installation you have two options (you need to choose only one):
 
-**Using local installed Ollama server (preferred for now):**
+**First option: Using local installed Ollama server (preferred for now):**
 
 1. Install [Ollama](https://ollama.com/download)
-2. Install `ollama3.1` model
-3. Set CORS headers
+2. Install `ollama3.1` model:
+
+Open terminal and run:
+
+```shell
+ollama run llama3.1
+```
+
+3. Set CORS headers:
 
 For macOS open terminal and run:
 
@@ -29,9 +36,13 @@ launchctl setenv OLLAMA_ORIGINS "*"
 
 For other OS please check [this](https://medium.com/dcoderai/how-to-handle-cors-settings-in-ollama-a-comprehensive-guide-ee2a5a1beef0)
 
-4. Restart Ollama server
+4. Restart Ollama server:
 
-**Using Built-in AI in future versions of Chrome:**
+for macOS: click on the Ollama icon in the menu bar and click "Quit Ollama" and then run Ollama from the Launchpad (or Applications folder) again.
+
+---
+
+**Second option: Using Built-in AI in future versions of Chrome:**
 
 1. Install [Chrome canary version](https://www.google.com/chrome/canary/)
 2. Open `chrome://flags/#prompt-api-for-gemini-nano` and set it to `Enabled`
