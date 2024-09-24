@@ -285,6 +285,14 @@ class Tooltip {
   }
 }
 
+const getButtonTopPosition = (rect: DOMRect) => {
+  if (rect.height < buttonSize + buttonPadding * 2) {
+    return rect.top + Math.max(0, rect.height - buttonSize) / 2;
+  }
+
+  return rect.bottom - buttonSize - buttonPadding;
+};
+
 type State =
   | { type: "empty" }
   | { type: "loading" }
@@ -432,8 +440,9 @@ class Control {
 
   public updatePosition() {
     const rect = this.textArea.getBoundingClientRect();
+
     this.#button.style.left = `${rect.right - buttonSize - buttonPadding}px`;
-    this.#button.style.top = `${rect.bottom - buttonSize - buttonPadding}px`;
+    this.#button.style.top = `${getButtonTopPosition(rect)}px`;
 
     this.#isVisible = isVisible(this.#button, this.textArea);
     this.#updateButtonVisibility();
