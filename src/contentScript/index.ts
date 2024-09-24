@@ -218,13 +218,13 @@ class Tooltip {
 
     Object.assign(this.#text.style, {
       color: "#000",
-      fontSize: "16px",
+      fontSize: "max(16px,1rem)",
       margin: "0",
     });
 
     Object.assign(this.#hint.style, {
       display: "none",
-      fontSize: "12px",
+      fontSize: "max(12px,0.75rem)",
       color: "#666",
       margin: "0",
     });
