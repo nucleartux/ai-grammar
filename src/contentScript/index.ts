@@ -1,4 +1,4 @@
-import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { computePosition, flip, offset, Rect } from "@floating-ui/dom";
 import { diffWords } from "diff";
 import type {
   GenerateResponse,
@@ -269,7 +269,7 @@ class Tooltip {
   #updateTooltipPosition() {
     computePosition(this.#button, this.#tooltip, {
       placement: "bottom",
-      middleware: [flip(), shift({ padding: 5 }), offset({ mainAxis: 2 })],
+      middleware: [flip(), offset({ mainAxis: 2 })],
     }).then(({ x, y }) => {
       Object.assign(this.#tooltip.style, {
         left: `${x}px`,
@@ -283,12 +283,12 @@ class Tooltip {
   }
 }
 
-const getButtonTopPosition = (rect: DOMRect) => {
+const getButtonVerticalPadding = (rect: Rect) => {
   if (rect.height < buttonSize + buttonPadding * 2) {
-    return rect.top + Math.max(0, rect.height - buttonSize) / 2;
+    return Math.max(0, rect.height - buttonSize) / 2;
   }
 
-  return rect.bottom - buttonSize - buttonPadding;
+  return buttonPadding;
 };
 
 type State =
@@ -459,10 +459,21 @@ class Control {
   }
 
   public updatePosition() {
-    const rect = this.textArea.getBoundingClientRect();
-
-    this.#button.style.left = `${rect.right - buttonSize - buttonPadding}px`;
-    this.#button.style.top = `${getButtonTopPosition(rect)}px`;
+    computePosition(this.textArea, this.#button, {
+      placement: "bottom-end",
+      middleware: [
+        offset((state) => ({
+          mainAxis:
+            -getButtonVerticalPadding(state.rects.reference) - buttonSize,
+          crossAxis: -buttonPadding,
+        })),
+      ],
+    }).then(({ x, y }) => {
+      Object.assign(this.#button.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+      });
+    });
 
     this.#isVisible = isVisible(this.#button, this.textArea);
     this.#updateButtonVisibility();
