@@ -15,7 +15,7 @@
 
 For installation you have two options (you need to choose only one):
 
-**First option: Using local installed Ollama server (preferred for now):**
+**First option: Using local installed Ollama server (you need 16GB RAM or more):**
 
 1. Install [Ollama](https://ollama.com/download)
 2. Install `ollama3.1` model:
