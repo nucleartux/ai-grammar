@@ -236,7 +236,6 @@ class Tooltip {
   }
 
   show() {
-    this.hint = null;
     this.#tooltip.style.display = "flex";
 
     this.#updateTooltipPosition();
@@ -244,7 +243,6 @@ class Tooltip {
 
   hide() {
     this.#tooltip.style.display = "none";
-    this.hint = null;
   }
 
   set text(text: string | DocumentFragment) {
@@ -318,7 +316,6 @@ class Control {
     this.#provider = provider;
     this.#button = document.createElement("button");
     this.#button.innerHTML = loadingIcon;
-    this.#button.addEventListener("click", this.#onClick);
     Object.assign(this.#button.style, {
       position: "absolute",
       zIndex: `${99999999999}`,
@@ -358,15 +355,26 @@ class Control {
     switch (state.type) {
       case "empty":
         this.#hide();
+        this.#tooltip.hint = null;
+        this.#button.removeEventListener("click", this.#handleWrongClick);
+        this.#button.removeEventListener("click", this.#handleErrorClick);
         return;
       case "loading":
         this.#show();
         this.#button.innerHTML = loadingIcon;
         this.#tooltip.text = "Loading...";
+        this.#tooltip.hint = null;
+        this.#button.style.cursor = "wait";
+        this.#button.removeEventListener("click", this.#handleWrongClick);
+        this.#button.removeEventListener("click", this.#handleErrorClick);
         return;
       case "correct":
         this.#show();
         this.#button.innerHTML = checkIcon;
+        this.#tooltip.hint = null;
+        this.#button.style.cursor = "default";
+        this.#button.removeEventListener("click", this.#handleWrongClick);
+        this.#button.removeEventListener("click", this.#handleErrorClick);
 
         this.#hideTooltip();
 
@@ -375,11 +383,23 @@ class Control {
         this.#show();
         this.#button.innerHTML = infoIcon;
         this.#tooltip.text = state.text;
+        this.#tooltip.hint =
+          this.textArea instanceof HTMLTextAreaElement
+            ? "Click to replace"
+            : "Click to copy";
+        this.#button.style.cursor = "pointer";
+
+        this.#button.addEventListener("click", this.#handleWrongClick);
+        this.#button.removeEventListener("click", this.#handleErrorClick);
         return;
       case "error":
         this.#show();
+        this.#tooltip.hint = "Click to open documentation";
         this.#button.innerHTML = powerIcon;
         this.#tooltip.text = state.text;
+        this.#button.style.cursor = "pointer";
+        this.#button.removeEventListener("click", this.#handleWrongClick);
+        this.#button.addEventListener("click", this.#handleErrorClick);
         return;
     }
   }
@@ -448,7 +468,16 @@ class Control {
     this.#updateButtonVisibility();
   }
 
-  #onClick = async () => {
+  #handleErrorClick = () => {
+    window
+      .open(
+        "https://github.com/nucleartux/ai-grammar?tab=readme-ov-file#ai-grammar",
+        "_blank",
+      )
+      ?.focus();
+  };
+
+  #handleWrongClick = async () => {
     if (!this.#result || this.#isCorrect) {
       return;
     }
