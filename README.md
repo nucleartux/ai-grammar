@@ -19,6 +19,17 @@ For installation you have two options (you need to choose only one):
 
 1. Install [Ollama](https://ollama.com/download)
 2. Install `ollama3.1` model
+3. Set CORS headers
+
+For macOS open terminal and run:
+
+```shell
+launchctl setenv OLLAMA_ORIGINS "*"
+```
+
+For other OS please check [this](https://medium.com/dcoderai/how-to-handle-cors-settings-in-ollama-a-comprehensive-guide-ee2a5a1beef0)
+
+4. Restart Ollama server
 
 **Using Built-in AI in future versions of Chrome:**
 
