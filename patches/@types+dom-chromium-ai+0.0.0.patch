@@ -1,0 +1,13 @@
+diff --git a/node_modules/@types/dom-chromium-ai/index.d.ts b/node_modules/@types/dom-chromium-ai/index.d.ts
+index f6420fe..f1304c0 100644
+--- a/node_modules/@types/dom-chromium-ai/index.d.ts
++++ b/node_modules/@types/dom-chromium-ai/index.d.ts
+@@ -3,6 +3,8 @@ interface WindowOrWorkerGlobalScope {
+ }
+ 
+ interface AI {
++    readonly languageModel: AIAssistantFactory;
++    /** deprecated */
+     readonly assistant: AIAssistantFactory;
+     readonly summarizer: AISummarizerFactory;
+     readonly writer: AIWriterFactory;

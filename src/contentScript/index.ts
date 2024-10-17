@@ -87,7 +87,9 @@ class GeminiProvider implements Provider {
 
   async isSupported() {
     try {
-      const result = await self.ai.assistant.capabilities();
+      const result = await (
+        self.ai.languageModel ?? self.ai.assistant
+      ).capabilities();
       return result.available === "readily";
     } catch (e) {
       console.warn(e);
@@ -98,7 +100,7 @@ class GeminiProvider implements Provider {
   async fixGrammar(text: string) {
     this.#abortController.abort();
     this.#abortController = new AbortController();
-    const session = await self.ai.assistant.create({
+    const session = await (self.ai.languageModel ?? self.ai.assistant).create({
       signal: this.#abortController.signal,
       systemPrompt: "correct grammar in text, don't add explanations",
     });

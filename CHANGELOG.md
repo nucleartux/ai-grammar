@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.1 [2024.10.17]
+
+- fix: support latest chrome version
+
 ## 0.3.0 [2024.09.24]
 
 - feat: add Ollama support
