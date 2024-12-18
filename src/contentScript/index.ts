@@ -580,16 +580,39 @@ const focusListener = (provider: Provider | null) => async (e: Event) => {
   control.update();
 };
 
+// const main = async () => {
+//   const providers = [new OllamaProvider(), new GeminiProvider()];
+
+//   let provider: Provider | null = null;
+
+//   for (let p of providers) {
+//     if (await p.isSupported()) {
+//       provider = p;
+//       break;
+//     }
+//   }
+
+//   const observer = new MutationObserver(() => {
+//     if (control?.textArea && !document.body.contains(control?.textArea)) {
+//       control?.destroy();
+//       control = null;
+//     }
+//   });
+//   observer.observe(document, { childList: true, subtree: true });
+
+//   document.addEventListener("input", inputListener(provider));
+//   document.addEventListener("focus", focusListener(provider), true);
+// };
+
+// main();
 const main = async () => {
-  const providers = [new OllamaProvider(), new GeminiProvider()];
+  // Directly use GeminiProvider
+  const provider = new GeminiProvider();
 
-  let provider: Provider | null = null;
-
-  for (let p of providers) {
-    if (await p.isSupported()) {
-      provider = p;
-      break;
-    }
+  // Check if GeminiProvider is supported
+  if (!(await provider.isSupported())) {
+    console.error("GeminiProvider is not supported.");
+    return;
   }
 
   const observer = new MutationObserver(() => {
