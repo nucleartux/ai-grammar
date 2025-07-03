@@ -2,7 +2,7 @@
   "name": "ai-grammar",
   "displayName": "AI Grammar Checker",
   "description": "Completely free and open source Chrome AI Grammar Check Extension",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Igor Adrov",
   "type": "module",
   "license": "MIT",
@@ -23,7 +23,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.6.10",
     "@types/diff": "^5.2.1",
-    "@types/dom-chromium-ai": "^0.0.0",
+    "@types/dom-chromium-ai": "^0.0.9",
     "diff": "^5.2.0",
     "ollama": "^0.5.9"
   },
