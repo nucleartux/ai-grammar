@@ -29,7 +29,6 @@ const resultFromPromise = <T>(promise: Promise<T>): Promise<Result<T>> => {
 const isVisible = (el: HTMLElement, parent: HTMLElement) => {
   const rect = el.getBoundingClientRect();
 
-  // check coords on the left of the button to handle cases with little textarea (twitter)
   const coords = [
     [rect.left - buttonSize - 1, rect.top + 4],
     [rect.right - buttonSize - 1, rect.top + 4],
@@ -77,9 +76,20 @@ function createDiff(str1: string, str2: string) {
   return fragment;
 }
 
+const isTextArea = (
+  node: Node | EventTarget,
+): node is HTMLTextAreaElement | HTMLElement => {
+  return (
+    ((node instanceof HTMLElement && node.contentEditable === "true") ||
+      node instanceof HTMLTextAreaElement) &&
+    node.spellcheck
+  );
+};
+
 interface Provider {
   isSupported: () => Promise<boolean>;
   fixGrammar: (text: string) => Promise<string>;
+  correctSpelling: (word: string) => Promise<string>;
 }
 
 class GeminiProvider implements Provider {
@@ -108,11 +118,27 @@ class GeminiProvider implements Provider {
       ],
     });
 
-    const prompt =
-      // @prettier-ignore
-      `correct grammar:
-  ${text}
-  `;
+    const prompt = `correct grammar:\n${text}`;
+
+    const result = (
+      await session.prompt(prompt, { signal: this.#abortController.signal })
+    ).trim();
+
+    session.destroy();
+
+    return result;
+  }
+
+  async correctSpelling(word: string) {
+    this.#abortController.abort();
+    this.#abortController = new AbortController();
+    const session = await (self.ai.languageModel ?? self.ai.assistant).create({
+      signal: this.#abortController.signal,
+      systemPrompt:
+        "Correct the spelling of the given word without providing explanations.",
+    });
+
+    const prompt = word;
 
     const result = (
       await session.prompt(prompt, { signal: this.#abortController.signal })
@@ -123,70 +149,6 @@ class GeminiProvider implements Provider {
     return result;
   }
 }
-
-class OllamaProvider implements Provider {
-  async isSupported() {
-    try {
-      const result: ListResponse | null = await chrome.runtime.sendMessage({
-        type: "ollama.list",
-      });
-
-      if (!result) {
-        return false;
-      }
-
-      return result.models.length > 0;
-    } catch (e) {
-      console.warn(e);
-      return false;
-    }
-  }
-
-  async fixGrammar(text: string) {
-    const prompt =
-      // @prettier-ignore
-      `correct grammar:
-  ${text}
-  `;
-
-    const response: GenerateResponse | null = await chrome.runtime.sendMessage({
-      type: "ollama.generate",
-      data: {
-        model: "llama3.1",
-        prompt,
-        system: "correct grammar in text, don't add explanations",
-      } satisfies GenerateRequest,
-    });
-
-    if (!response) {
-      throw new Error("Make sure that Ollama is installed and running.");
-    }
-
-    return response.response;
-  }
-}
-
-const isTextArea = (
-  node: Node | EventTarget,
-): node is HTMLTextAreaElement | HTMLElement => {
-  return (
-    ((node instanceof HTMLElement && node.contentEditable === "true") ||
-      node instanceof HTMLTextAreaElement) &&
-    node.spellcheck
-  );
-};
-
-const recursivelyFindAllTextAreas = (node: Node) => {
-  const inputs: (HTMLTextAreaElement | HTMLElement)[] = [];
-  if (isTextArea(node)) {
-    inputs.push(node);
-  } else {
-    for (let child of node.childNodes) {
-      inputs.push(...recursivelyFindAllTextAreas(child));
-    }
-  }
-  return inputs;
-};
 
 class Tooltip {
   #tooltip: HTMLDivElement;
@@ -343,6 +305,9 @@ class Control {
     this.#updateInterval = setInterval(() => {
       control?.updatePosition();
     }, 60);
+
+    // Add event listener for keyup events
+    this.textArea.addEventListener("keyup", this.#handleKeyUp);
   }
 
   #showTooltip() {
@@ -427,7 +392,6 @@ class Control {
       return;
     }
 
-    // rarely works with single words
     if (text.trim().split(/\s+/).length < 2) {
       this.#setState({ type: "empty" });
       return;
@@ -482,6 +446,58 @@ class Control {
 
     this.#isVisible = isVisible(this.#button, this.textArea);
     this.#updateButtonVisibility();
+  }
+
+  #handleKeyUp = async (event: Event) => {
+    const keyboardEvent = event as KeyboardEvent;
+    if (keyboardEvent.key === " ") {
+      const cursorPosition = this.#getCursorPosition();
+      const text =
+        this.textArea instanceof HTMLTextAreaElement
+          ? this.textArea.value
+          : this.textArea.innerText;
+
+      const textBeforeCursor = text.slice(0, cursorPosition);
+      const words = textBeforeCursor.trim().split(/\s+/);
+      const lastWord = words[words.length - 2]; // The word before the space
+
+      if (lastWord && lastWord.length >= 3) {
+        const result = await resultFromPromise(
+          this.#provider?.correctSpelling(lastWord.trim()) ??
+            Promise.resolve(lastWord)
+        );
+
+        if (result.ok && result.value !== lastWord) {
+          const correctedWord = result.value;
+          const newTextBeforeCursor =
+            textBeforeCursor.slice(0, -lastWord.length - 1) +
+            correctedWord +
+            " ";
+
+          const newText = newTextBeforeCursor + text.slice(cursorPosition);
+          if (this.textArea instanceof HTMLTextAreaElement) {
+            this.textArea.value = newText;
+
+            const newCursorPosition = newTextBeforeCursor.length;
+            // Restore cursor position
+            this.textArea.selectionStart = this.textArea.selectionEnd =
+              newCursorPosition;
+          } else {
+            this.textArea.innerText = newText;
+            // Implement caret position setting for contentEditable elements if needed
+          }
+        }
+      }
+    }
+  };
+
+  #getCursorPosition(): number {
+    if (this.textArea instanceof HTMLTextAreaElement) {
+      return this.textArea.selectionStart ?? 0;
+    } else {
+      // Implement caret position retrieval for contentEditable elements if needed
+      return 0;
+    }
   }
 
   #handleErrorClick = () => {
@@ -539,6 +555,7 @@ class Control {
     if (this.#updateInterval) {
       clearInterval(this.#updateInterval);
     }
+    this.textArea.removeEventListener("keyup", this.#handleKeyUp);
   }
 
   isSameElement(el: EventTarget | null) {
@@ -584,15 +601,11 @@ const focusListener = (provider: Provider | null) => async (e: Event) => {
 };
 
 const main = async () => {
-  const providers = [new OllamaProvider(), new GeminiProvider()];
+  const provider = new GeminiProvider();
 
-  let provider: Provider | null = null;
-
-  for (let p of providers) {
-    if (await p.isSupported()) {
-      provider = p;
-      break;
-    }
+  if (!(await provider.isSupported())) {
+    console.error("GeminiProvider is not supported.");
+    return;
   }
 
   const observer = new MutationObserver(() => {
