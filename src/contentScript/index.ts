@@ -5,6 +5,14 @@ import type {
   GenerateRequest,
   ListResponse,
 } from "ollama/browser";
+import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+const outputSchema = z.object({
+  correctedText: z.string(),
+});
+
+const outputSchemaJson = zodToJsonSchema(outputSchema);
 
 const buttonSize = 24;
 const buttonPadding = 8;
@@ -104,27 +112,18 @@ class GeminiProvider implements Provider {
     this.#abortController = new AbortController();
     const session = await LanguageModel.create({
       signal: this.#abortController.signal,
-      initialPrompts: [
-        {
-          role: "user",
-          content: "correct grammar in text, don't add explanations",
-        },
-      ],
     });
 
-    const prompt =
-      // @prettier-ignore
-      `correct grammar:
-  ${text}
-  `;
+    const result = await session.prompt(`Correct grammar in text:\n"${text}`, {
+      signal: this.#abortController.signal,
+      responseConstraint: outputSchemaJson,
+    });
 
-    const result = (
-      await session.prompt(prompt, { signal: this.#abortController.signal })
-    ).trim();
+    const json = outputSchema.parse(JSON.parse(result));
 
     session.destroy();
 
-    return result;
+    return json.correctedText;
   }
 }
 
@@ -147,18 +146,12 @@ class OllamaProvider implements Provider {
   }
 
   async fixGrammar(text: string) {
-    const prompt =
-      // @prettier-ignore
-      `correct grammar:
-  ${text}
-  `;
-
     const response: GenerateResponse | null = await chrome.runtime.sendMessage({
       type: "ollama.generate",
       data: {
         model: "llama3.1",
-        prompt,
-        system: "correct grammar in text, don't add explanations",
+        prompt: `Correct grammar in text:\n"${text}`,
+        format: outputSchema,
       } satisfies GenerateRequest,
     });
 
@@ -166,7 +159,9 @@ class OllamaProvider implements Provider {
       throw new Error("Make sure that Ollama is installed and running.");
     }
 
-    return response.response;
+    const json = outputSchema.parse(JSON.parse(response.response));
+
+    return json.correctedText;
   }
 }
 
