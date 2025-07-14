@@ -62,11 +62,15 @@ function createDiff(str1: string, str2: string) {
       node = document.createElement("del");
       node.style.background = "#ffe6e6";
       node.style.color = "#c00";
+      node.style.textDecorationLine = "line-through";
+      node.style.textDecorationColor = "#c00";
       node.appendChild(document.createTextNode(diff[i].value));
     } else if (diff[i].added) {
       node = document.createElement("ins");
       node.style.background = "#e6ffe6";
       node.style.color = "#0c0";
+      node.style.textDecorationLine = "underline";
+      node.style.textDecorationColor = "#0c0";
       node.appendChild(document.createTextNode(diff[i].value));
     } else {
       node = document.createTextNode(diff[i].value);
@@ -583,6 +587,29 @@ const focusListener = (provider: Provider | null) => async (e: Event) => {
   control.update();
 };
 
+const targets = new Set<HTMLTextAreaElement | HTMLElement>();
+
+const updateTargets = (provider: Provider | null) => {
+  for (const target of targets) {
+    if (!document.body.contains(target)) {
+      targets.delete(target);
+    }
+  }
+
+  document
+    .querySelectorAll("textarea, [contenteditable=true]")
+    .forEach((el) => {
+      if (targets.has(el as HTMLTextAreaElement | HTMLElement)) {
+        return;
+      }
+
+      targets.add(el as HTMLTextAreaElement | HTMLElement);
+
+      el.addEventListener("input", inputListener(provider), true);
+      el.addEventListener("focus", focusListener(provider), true);
+    });
+};
+
 const main = async () => {
   const providers = [new OllamaProvider(), new GeminiProvider()];
 
@@ -600,11 +627,12 @@ const main = async () => {
       control?.destroy();
       control = null;
     }
+
+    updateTargets(provider);
   });
   observer.observe(document, { childList: true, subtree: true });
 
-  document.addEventListener("input", inputListener(provider));
-  document.addEventListener("focus", focusListener(provider), true);
+  updateTargets(provider);
 };
 
 main();
