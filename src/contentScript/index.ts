@@ -95,12 +95,13 @@ interface Provider {
 }
 
 class GeminiProvider implements Provider {
-  #abortController = new AbortController();
-
   async isSupported() {
     try {
-      const result = await LanguageModel.availability();
-      return result === "available";
+      const result: boolean = await chrome.runtime.sendMessage({
+        type: "gemini.supported",
+      });
+
+      return result;
     } catch (e) {
       console.warn(e);
       return false;
@@ -108,20 +109,19 @@ class GeminiProvider implements Provider {
   }
 
   async fixGrammar(text: string) {
-    this.#abortController.abort();
-    this.#abortController = new AbortController();
-    const session = await LanguageModel.create({
-      signal: this.#abortController.signal,
+    const response: string | null = await chrome.runtime.sendMessage({
+      type: "gemini.generate",
+      data: {
+        text: `Correct grammar in text:\n"${text}`,
+        responseConstraint: outputSchemaJson,
+      } satisfies LanguageModelPromptOptions & { text: LanguageModelPrompt },
     });
 
-    const result = await session.prompt(`Correct grammar in text:\n"${text}`, {
-      signal: this.#abortController.signal,
-      responseConstraint: outputSchemaJson,
-    });
+    if (!response) {
+      throw new Error("Make sure that Gemini is working");
+    }
 
-    const json = outputSchema.parse(JSON.parse(result));
-
-    session.destroy();
+    const json = outputSchema.parse(JSON.parse(response));
 
     return json.correctedText;
   }
