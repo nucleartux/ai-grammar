@@ -13,9 +13,16 @@
 
 ## Installing
 
-For installation you have two options (you need to choose only one):
+For installation you have two options (you need to choose **only one**):
 
-**First option: Using local installed Ollama server (you need 16GB RAM or more):**
+**First option: Using Built-in AI in Chrome 138+:**
+
+1. Install Chrome 138 or above
+2. That's all. Use the extension. You might need to wait the first time while the model is loading, but further interactions should be almost instant (although it depends on your hardware, of course).
+
+If something goes wrong reload the page, if it doesn't work please [open an issue](https://github.com/nucleartux/ai-grammar/issues/new).
+
+**Second option (more advanced): Using local installed Ollama server (you need 16GB RAM or more):**
 
 1. Install [Ollama](https://ollama.com/download)
 2. Install `ollama3.1` model:
@@ -42,14 +49,7 @@ for macOS: click on the Ollama icon in the menu bar and click "Quit Ollama" and 
 
 ---
 
-**Second option: Using Built-in AI in future versions of Chrome:**
 
-1. Install [Chrome canary version](https://www.google.com/chrome/canary/)
-2. Open `chrome://flags/#prompt-api-for-gemini-nano` and set it to `Enabled`
-3. Open `chrome://flags/#optimization-guide-on-device-model` and set it to `Enabled BypassPrefRequirement`
-4. Go to `chrome://components` and click "Check for Update" on "Optimization Guide On Device Model"
-
-If something goes wrong reload the page, if it doesn't work please [open an issue](https://github.com/nucleartux/ai-grammar/issues/new).
 
 ## Developing
 
